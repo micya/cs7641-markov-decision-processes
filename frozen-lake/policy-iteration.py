@@ -22,7 +22,7 @@ class FrozenLakeAgent(object):
     
     def train(self) -> np.array:
         value_table = np.zeros(self.num_states)
-        delta = np.inf
+        policy_table = np.zeros(self.num_states, dtype=int)
         iterations = 0
 
         # precalculate probability transitions
@@ -62,11 +62,31 @@ class FrozenLakeAgent(object):
         reward_table = np.zeros(self.num_states)
         reward_table[self.goal] = 1
 
-        while delta > self.theta:
-            delta = 0
+        policy_stable = False
 
+        while not policy_stable:
+            delta = np.inf
+            policy_stable = True
+
+            # policy evaluation
+            while delta > self.theta:
+                delta = 0
+
+                for state in range(self.num_states):
+                    new_value = 0
+                    
+                    for new_state in range(self.num_states):
+                        new_value += probability_table[state, policy_table[state], new_state] * \
+                            (reward_table[new_state] + self.gamma * value_table[new_state])
+
+                    delta = max(delta, abs(value_table[state] - new_value))
+                    value_table[state] = new_value
+
+                iterations += 1
+
+            # policy improvement
             for state in range(self.num_states):
-                old_value = value_table[state]
+                old_policy = policy_table[state]
                 new_v = np.zeros(self.num_actions)
 
                 for action in range(self.num_actions):
@@ -74,28 +94,16 @@ class FrozenLakeAgent(object):
                         new_v[action] += probability_table[state, action, new_state] * \
                             (reward_table[new_state] + self.gamma * value_table[new_state])
 
-                value_table[state] = np.max(new_v)
-                delta = max(delta, abs(old_value - value_table[state]))
+                policy_table[state] = np.argmax(new_v)
+                
+                if policy_table[state] != old_policy:
+                    policy_stable = False
 
-            iterations += 1
 
-        print(value_table.reshape((self.m, self.n)))
-            
+        print(value_table.reshape((self.m, self.n)))            
         print(f"iterations: {iterations}")
 
-        # find best policy and return
-        policy = np.zeros(self.num_states)
-        for state in range(self.num_states):
-            new_v = np.zeros(self.num_actions)
-
-            for action in range(self.num_actions):
-                for new_state in range(self.num_states):
-                    new_v[action] += probability_table[state, action, new_state] * \
-                        (reward_table[new_state] + self.gamma * value_table[new_state])
-
-            policy[state] = np.argmax(new_v)
-
-        return policy
+        return policy_table
 
     def test(self):
         policy = self.train()
@@ -143,7 +151,7 @@ if __name__ == "__main__":
     # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFFHFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 2, 2, 'SFFG')
-    # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFHHFFHHFFHHFFG')
-    agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
+    agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFHHFFHHFFHHFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
 
     agent.test()
