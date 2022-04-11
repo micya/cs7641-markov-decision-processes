@@ -42,12 +42,21 @@ class FrozenLakeAgent(object):
 
                 if valid1:
                     probability_table[state][action][state1] = move_probability
+                else:
+                    # remain in place
+                    probability_table[state][action][state] += move_probability
 
                 if valid2:
                     probability_table[state][action][state2] = slip_probability
+                else:
+                    # remain in place
+                    probability_table[state][action][state] += slip_probability
 
                 if valid3:
                     probability_table[state][action][state3] = slip_probability
+                else:
+                    # remain in place
+                    probability_table[state][action][state] += slip_probability
 
         # precalculate rewards
         reward_table = np.zeros(self.num_states)
@@ -131,10 +140,10 @@ class FrozenLakeAgent(object):
             return self.coordinate_to_state(x - 1, y), x - 1 >= 0
 
 if __name__ == "__main__":
-    agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFFHFFFFFFFFFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFFHFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 2, 2, 'SFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFHHFFHHFFHHFFG')
-    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
+    agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
 
     agent.test()
