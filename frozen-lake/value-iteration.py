@@ -2,7 +2,7 @@ import gym
 import numpy as np
 
 class FrozenLakeAgent(object): 
-    def __init__(self, gamma: float, theta: float, m: int, n: int, map: str, goal: int) -> None:
+    def __init__(self, gamma: float, theta: float, m: int, n: int, map: str) -> None:
         self.gamma = gamma
         self.theta = theta
 
@@ -12,7 +12,7 @@ class FrozenLakeAgent(object):
         self.num_actions = 4
 
         self.map = map
-        self.goal = goal
+        self.goal = map.index('G')
 
     def amap_to_gym(self, amap='FFGG'):
         amap = np.asarray(amap, dtype='c')
@@ -31,39 +31,23 @@ class FrozenLakeAgent(object):
         slip_probability = (1 - move_probability) / 2
 
         for state in range(self.num_states):
-            if self.map[state] == 'H':
+            if self.map[state] == 'H' or self.map[state] == 'G':
                 continue
 
             for action in range(self.num_actions):
                 # find new state
-                if action == 0:
-                    if state - 1 >= 0:
-                        probability_table[state][action][state - 1] = move_probability
-                    if state - self.n >= 0:
-                        probability_table[state][action][state - self.n] = slip_probability
-                    if state + self.n < self.num_states:
-                        probability_table[state][action][state + self.n] = slip_probability
-                elif action == 1:
-                    if state + self.n < self.num_states:
-                        probability_table[state][action][state + self.n] = move_probability
-                    if state - 1 >= 0:
-                        probability_table[state][action][state - 1] = slip_probability
-                    if state + 1 < self.num_states:
-                        probability_table[state][action][state + 1] = slip_probability
-                elif action == 2:
-                    if state + 1 < self.num_states:
-                        probability_table[state][action][state + 1] = move_probability
-                    if state - self.n >= 0:
-                        probability_table[state][action][state - self.n] = slip_probability
-                    if state + self.n < self.num_states:
-                        probability_table[state][action][state + self.n] = slip_probability
-                elif action == 3:
-                    if state - self.n >= 0:
-                        probability_table[state][action][state - self.n] = move_probability
-                    if state - 1 >= 0:
-                        probability_table[state][action][state - 1] = slip_probability
-                    if state + 1 < self.num_states:
-                        probability_table[state][action][state + 1] = slip_probability
+                state1, valid1 = self.get_neighbor(state, action)
+                state2, valid2 = self.get_neighbor(state, (action + 1) % 4)
+                state3, valid3 = self.get_neighbor(state, (action + 3) % 4)
+
+                if valid1:
+                    probability_table[state][action][state1] = move_probability
+
+                if valid2:
+                    probability_table[state][action][state2] = slip_probability
+
+                if valid3:
+                    probability_table[state][action][state3] = slip_probability
 
         # precalculate rewards
         reward_table = np.zeros(self.num_states)
@@ -85,20 +69,22 @@ class FrozenLakeAgent(object):
                 delta = max(delta, abs(tmp - value_table[state]))
 
             iterations += 1
+
+        print(value_table.reshape((self.m, self.n)))
             
         print(f"iterations: {iterations}")
 
         # find best policy and return
         policy = np.zeros(self.num_states)
         for state in range(self.num_states):
-                new_v = np.zeros(self.num_actions)
+            new_v = np.zeros(self.num_actions)
 
-                for action in range(self.num_actions):
-                    for new_state in range(self.num_states):
-                        new_v[action] += probability_table[state, action, new_state] * \
-                            (reward_table[new_state] + self.gamma * value_table[new_state])
+            for action in range(self.num_actions):
+                for new_state in range(self.num_states):
+                    new_v[action] += probability_table[state, action, new_state] * \
+                        (reward_table[new_state] + self.gamma * value_table[new_state])
 
-                policy[state] = np.argmax(new_v)
+            policy[state] = np.argmax(new_v)
 
         return policy
 
@@ -124,11 +110,31 @@ class FrozenLakeAgent(object):
 
         env.close()
 
+    def state_to_coordinates(self, state: int) -> tuple:
+        x = int(np.floor(state / self.m))
+        y = state - x * self.m
+        return (x, y)
+
+    def coordinate_to_state(self, m: int, n: int) -> int:
+        return m * self.n + n
+
+    def get_neighbor(self, state: int, dir: int) -> tuple:
+        x, y = self.state_to_coordinates(state)
+
+        if dir == 0:
+            return self.coordinate_to_state(x, y - 1), y - 1 >= 0
+        elif dir == 1:
+            return self.coordinate_to_state(x + 1, y), x + 1 < self.m
+        elif dir == 2:
+            return self.coordinate_to_state(x, y + 1), y + 1 < self.n
+        else:
+            return self.coordinate_to_state(x - 1, y), x - 1 >= 0
+
 if __name__ == "__main__":
-    # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFFHFFFFFFFFFFG', 15)
-    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG', 24)
-    # agent = FrozenLakeAgent(0.9, 0.0000001, 2, 2, 'SFFG', 3)
-    agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFHHFFHHFFHHFFG', 15)
-    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG', 24)
-    
+    agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFFHFFFFFFFFFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 2, 2, 'SFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFHHFFHHFFHHFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
+
     agent.test()
