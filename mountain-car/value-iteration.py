@@ -41,7 +41,7 @@ class MountainCarAgent(object):
                     max_value = -np.inf
 
                     for action in range(self.num_actions):
-                        if position < self.discrete_goal:
+                        if position <= self.discrete_goal:
                             # mountain car is deterministic
                             new_state = self.get_next_state(position, velocity, action)
                             new_v = reward_table[new_state] + self.gamma * value_table[new_state]
@@ -134,5 +134,10 @@ class MountainCarAgent(object):
         env.close()
 
 if __name__ == "__main__":
-    agent = MountainCarAgent(0.9, 0.0000001, 100, 3)
+    agent = MountainCarAgent(0.9, 0.01, 1000, 1000)
     agent.test()
+
+    # discrete_position, discrete_velocity = agent.get_discrete_state(0, 0)
+    # print(agent.get_next_state(discrete_position, discrete_velocity, 0))
+    # print(agent.get_next_state(discrete_position, discrete_velocity, 1))
+    # print(agent.get_next_state(discrete_position, discrete_velocity, 2))
