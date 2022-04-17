@@ -1,7 +1,8 @@
 import gym
 import numpy as np
 
-class FrozenLakeAgent(object): 
+
+class FrozenLakeAgent(object):
     def __init__(self, gamma: float, theta: float, m: int, n: int, map: str) -> None:
         self.gamma = gamma
         self.theta = theta
@@ -19,14 +20,15 @@ class FrozenLakeAgent(object):
         side = int(np.sqrt(amap.shape[0]))
         amap = amap.reshape((side, side))
         return amap
-    
+
     def train(self) -> np.array:
         value_table = np.zeros(self.num_states)
         delta = np.inf
         iterations = 0
 
         # precalculate probability transitions
-        probability_table = np.zeros([self.num_states, self.num_actions, self.num_states])
+        probability_table = np.zeros(
+            [self.num_states, self.num_actions, self.num_states])
         move_probability = 1 / 3
         slip_probability = (1 - move_probability) / 2
 
@@ -72,7 +74,8 @@ class FrozenLakeAgent(object):
                 for action in range(self.num_actions):
                     for new_state in range(self.num_states):
                         new_v[action] += probability_table[state, action, new_state] * \
-                            (reward_table[new_state] + self.gamma * value_table[new_state])
+                            (reward_table[new_state] +
+                             self.gamma * value_table[new_state])
 
                 value_table[state] = np.max(new_v)
                 delta = max(delta, abs(old_value - value_table[state]))
@@ -80,7 +83,7 @@ class FrozenLakeAgent(object):
             iterations += 1
 
         print(value_table.reshape((self.m, self.n)))
-            
+
         print(f"iterations: {iterations}")
 
         # find best policy and return
@@ -91,7 +94,8 @@ class FrozenLakeAgent(object):
             for action in range(self.num_actions):
                 for new_state in range(self.num_states):
                     new_v[action] += probability_table[state, action, new_state] * \
-                        (reward_table[new_state] + self.gamma * value_table[new_state])
+                        (reward_table[new_state] +
+                         self.gamma * value_table[new_state])
 
             policy[state] = np.argmax(new_v)
 
@@ -101,19 +105,20 @@ class FrozenLakeAgent(object):
         policy = self.train()
         print(policy)
 
-        env = gym.make('FrozenLake-v1', desc=self.amap_to_gym(self.map), is_slippery=True)
+        env = gym.make('FrozenLake-v1',
+                       desc=self.amap_to_gym(self.map), is_slippery=True)
 
         state = env.reset()
         done = False
 
         while not done:
             env.render()
-            
+
             action = int(policy[state])
             print(action)
 
             new_state, reward, done, info = env.step(action)
-            
+
             # update state
             state = new_state
 
@@ -138,6 +143,7 @@ class FrozenLakeAgent(object):
             return self.coordinate_to_state(x, y + 1), y + 1 < self.n
         else:
             return self.coordinate_to_state(x - 1, y), x - 1 >= 0
+
 
 if __name__ == "__main__":
     # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFFHFFFFFFFFFFG')

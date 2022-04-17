@@ -1,7 +1,8 @@
 import gym
 import numpy as np
 
-class FrozenLakeAgent(object): 
+
+class FrozenLakeAgent(object):
     def __init__(self, gamma: float, epsilon: int, alpha: int, episodes: int, m: int, n: int, map: str) -> None:
         self.gamma = gamma
         self.epsilon = epsilon
@@ -21,9 +22,10 @@ class FrozenLakeAgent(object):
         side = int(np.sqrt(amap.shape[0]))
         amap = amap.reshape((side, side))
         return amap
-    
+
     def train(self) -> np.array:
-        env = gym.make('FrozenLake-v1', desc=self.amap_to_gym(self.map), is_slippery=True)
+        env = gym.make('FrozenLake-v1',
+                       desc=self.amap_to_gym(self.map), is_slippery=True)
 
         q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
@@ -33,7 +35,8 @@ class FrozenLakeAgent(object):
 
             while not done:
                 # choose A from S using policy derived from Q
-                action = self.get_greedy_action(state, q_table, env.action_space.n)
+                action = self.get_greedy_action(
+                    state, q_table, env.action_space.n)
 
                 # take action A, observe R, S'
                 new_state, reward, done, info = env.step(action)
@@ -45,7 +48,8 @@ class FrozenLakeAgent(object):
 
                 # do scary update
                 q_table[state, action] += self.alpha * \
-                    (reward + self.gamma * np.max(q_table[new_state]) - q_table[state, action])
+                    (reward + self.gamma *
+                     np.max(q_table[new_state]) - q_table[state, action])
 
                 # update state and action
                 state = new_state
@@ -74,29 +78,32 @@ class FrozenLakeAgent(object):
         policy = self.train()
         print(policy)
 
-        env = gym.make('FrozenLake-v1', desc=self.amap_to_gym(self.map), is_slippery=True)
+        env = gym.make('FrozenLake-v1',
+                       desc=self.amap_to_gym(self.map), is_slippery=True)
 
         state = env.reset()
         done = False
 
         while not done:
             env.render()
-            
+
             action = int(policy[state])
             print(action)
 
             new_state, reward, done, info = env.step(action)
-            
+
             # update state
             state = new_state
 
         env.close()
+
 
 if __name__ == "__main__":
     # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 4, 4, 'SFFFHFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 2, 2, 'SFFG')
     # agent = FrozenLakeAgent(0.9, 0.4, 1, 5000, 4, 4, 'SFFHHFFHHFFHHFFG')
-    agent = FrozenLakeAgent(0.9, 0.4, 1, 5000, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
+    agent = FrozenLakeAgent(0.9, 0.4, 1, 5000, 5, 5,
+                            'SFFFFHFFFHHFFFFFFFFHHFFFG')
 
     agent.test()
