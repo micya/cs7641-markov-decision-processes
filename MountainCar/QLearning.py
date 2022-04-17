@@ -2,84 +2,94 @@ import gym
 import numpy as np
 
 
-class FrozenLakeAgent(object):
-    def __init__(self, gamma: float, epsilon: int, alpha: int, episodes: int, m: int, n: int, map: str) -> None:
+class MountainCarAgent(object):
+    def __init__(self, gamma: float, epsilon: float, alpha: float, episodes: int, position_partitions: int, velocity_partitions: int) -> None:
         self.gamma = gamma
         self.epsilon = epsilon
         self.alpha = alpha
         self.episodes = episodes
 
-        self.m = m
-        self.n = n
-        self.num_states = m * n
-        self.num_actions = 4
+        self.position_partitions = position_partitions
+        self.velocity_partitions = velocity_partitions
 
-        self.map = map
-        self.goal = map.index('G')
+        # -1.2 <= position <= 0.6 & -0.07 <= velocity <= 0.07
+        self.min_position = -1.2
+        self.max_position = 0.6
+        self.min_velocity = -0.07
+        self.max_velocity = 0.07
 
-    def amap_to_gym(self, amap='FFGG'):
-        amap = np.asarray(amap, dtype='c')
-        side = int(np.sqrt(amap.shape[0]))
-        amap = amap.reshape((side, side))
-        return amap
+        self.position_size = (self.max_position -
+                              self.min_position) / position_partitions
+        self.velocity_size = (self.max_velocity -
+                              self.min_velocity) / velocity_partitions
+
+        self.num_actions = 3
+        self.goal = 0.5
+        self.discrete_goal = int(
+            np.floor((self.goal - self.min_position) / self.position_size))
 
     def train(self) -> np.array:
-        env = gym.make('FrozenLake-v1',
-                       desc=self.amap_to_gym(self.map), is_slippery=True)
+        env = gym.make('MountainCar-v0')
 
-        q_table = np.zeros([env.observation_space.n, env.action_space.n])
+        q_table = np.zeros([self.position_partitions + 1, self.velocity_partitions + 1, self.num_actions])
 
         for _ in range(self.episodes):
             state = env.reset()
+            position, velocity = self.get_discrete_state(state[0], state[1])
             done = False
 
             while not done:
                 # choose A from S using policy derived from Q
                 action = self.get_greedy_action(
-                    state, q_table, env.action_space.n)
+                    position, velocity, q_table, env.action_space.n)
 
                 # take action A, observe R, S'
                 new_state, reward, done, info = env.step(action)
-
-                if new_state == 'F':
-                    reward = -0.1
-                elif new_state == 'H':
-                    reward = -1
+                new_position, new_velocity = self.get_discrete_state(new_state[0], new_state[1])
 
                 # do scary update
-                q_table[state, action] += self.alpha * \
+                q_table[position, velocity, action] += self.alpha * \
                     (reward + self.gamma *
-                     np.max(q_table[new_state]) - q_table[state, action])
+                     np.max(q_table[new_position, new_velocity]) - q_table[position, velocity, action])
 
                 # update state and action
-                state = new_state
+                position = new_position
+                velocity = new_velocity
 
-        policy = np.zeros(env.observation_space.n)
+        policy = np.zeros([self.position_partitions + 1, self.velocity_partitions + 1])
 
-        for state in range(env.observation_space.n):
-            policy[state] = np.argmax(q_table[state])
+        for position in range(self.position_partitions):
+            for velocity in range(self.velocity_partitions):
+                policy[position, velocity] = np.argmax(q_table[position, velocity])
 
         env.close()
 
         return policy
 
-    def get_greedy_action(self, state, q_table, size_of_action_space):
+    def get_discrete_state(self, position: float, velocity: float) -> tuple:
+        discrete_position = int(
+            np.floor((position - self.min_position) / self.position_size))
+        discrete_velocity = int(
+            np.floor((velocity - self.min_velocity) / self.velocity_size))
+        return discrete_position, discrete_velocity
+
+    def get_greedy_action(self, position, velocity, q_table, size_of_action_space):
         # decide if random
         if np.random.random() < self.epsilon:
             # pick random action
             action = np.random.randint(size_of_action_space)
         else:
             # pick greedy action
-            action = np.argmax(q_table[state])
+            action = np.argmax(q_table[position, velocity])
 
         return action
 
-    def test(self):
-        policy = self.train()
-        print(policy)
+    def test(self, policy=None):
+        if policy is None:
+            policy = self.train()
+            print(policy)
 
-        env = gym.make('FrozenLake-v1',
-                       desc=self.amap_to_gym(self.map), is_slippery=True)
+        env = gym.make('MountainCar-v0')
 
         state = env.reset()
         done = False
@@ -87,8 +97,8 @@ class FrozenLakeAgent(object):
         while not done:
             env.render()
 
-            action = int(policy[state])
-            print(action)
+            action = int(policy[self.get_discrete_state(state[0], state[1])])
+            # print(action)
 
             new_state, reward, done, info = env.step(action)
 
@@ -99,11 +109,10 @@ class FrozenLakeAgent(object):
 
 
 if __name__ == "__main__":
-    # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 4, 4, 'SFFFHFFFFFFFFFFG')
-    # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG')
-    # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 2, 2, 'SFFG')
-    # agent = FrozenLakeAgent(0.9, 0.4, 1, 5000, 4, 4, 'SFFHHFFHHFFHHFFG')
-    agent = FrozenLakeAgent(0.9, 0.4, 1, 5000, 5, 5,
-                            'SFFFFHFFFHHFFFFFFFFHHFFFG')
-
+    agent = MountainCarAgent(0.9, 0.5, 0.1, 500, 20, 20)
     agent.test()
+
+    # discrete_position, discrete_velocity = agent.get_discrete_state(-1.0, 0)
+    # print(agent.get_next_state(discrete_position, discrete_velocity, 0))
+    # print(agent.get_next_state(discrete_position, discrete_velocity, 1))
+    # print(agent.get_next_state(discrete_position, discrete_velocity, 2))

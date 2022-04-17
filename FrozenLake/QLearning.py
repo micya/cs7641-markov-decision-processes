@@ -3,7 +3,7 @@ import numpy as np
 
 
 class FrozenLakeAgent(object):
-    def __init__(self, gamma: float, epsilon: int, alpha: int, episodes: int, m: int, n: int, map: str) -> None:
+    def __init__(self, gamma: float, epsilon: float, alpha: float, episodes: int, m: int, n: int, map: str) -> None:
         self.gamma = gamma
         self.epsilon = epsilon
         self.alpha = alpha
