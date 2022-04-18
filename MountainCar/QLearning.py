@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class MountainCarAgent(object):
@@ -93,26 +94,44 @@ class MountainCarAgent(object):
 
         state = env.reset()
         done = False
+        total_reward = 0
 
         while not done:
-            env.render()
+            # env.render()
 
             action = int(policy[self.get_discrete_state(state[0], state[1])])
             # print(action)
 
             new_state, reward, done, info = env.step(action)
+            total_reward += reward
 
             # update state
             state = new_state
 
         env.close()
+        return total_reward
 
 
 if __name__ == "__main__":
-    agent = MountainCarAgent(0.9, 0.5, 0.1, 500, 20, 20)
-    agent.test()
+    agent = MountainCarAgent(0.9, 0.5, 0.1, 500, 10, 1000)
+    # agent.test()
 
     # discrete_position, discrete_velocity = agent.get_discrete_state(-1.0, 0)
     # print(agent.get_next_state(discrete_position, discrete_velocity, 0))
     # print(agent.get_next_state(discrete_position, discrete_velocity, 1))
     # print(agent.get_next_state(discrete_position, discrete_velocity, 2))
+
+    rewards = []
+    step_size = 0.1
+
+    for alpha in np.arange(1, step=step_size):
+        agent = MountainCarAgent(0.9, 0.5, alpha, 500, 20, 20)
+
+        policy = agent.train()
+        rewards.append(agent.test(policy))
+        print(alpha)
+
+
+    plt.scatter(np.arange(1, step=step_size), rewards)
+    plt.savefig("QLearning-Rewards.png")
+    plt.close()

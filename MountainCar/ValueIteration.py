@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
+import time
 
 
 class MountainCarAgent(object):
@@ -93,7 +95,7 @@ class MountainCarAgent(object):
 
                 policy[position, velocity] = max_action
 
-        return policy
+        return iterations, policy
 
     def get_discrete_state(self, position: float, velocity: float) -> tuple:
         discrete_position = int(
@@ -136,26 +138,61 @@ class MountainCarAgent(object):
 
         state = env.reset()
         done = False
+        total_reward = 0
 
         while not done:
-            env.render()
+            # env.render()
 
             action = int(policy[self.get_discrete_state(state[0], state[1])])
             # print(action)
 
             new_state, reward, done, info = env.step(action)
+            total_reward += reward
 
             # update state
             state = new_state
 
         env.close()
+        return total_reward
 
 
 if __name__ == "__main__":
     agent = MountainCarAgent(0.9, 0.1, 10, 1000)
-    agent.test()
+    # agent.test()
+
+    # policy = agent.train()
+    # agent.test(policy)
 
     # discrete_position, discrete_velocity = agent.get_discrete_state(-1.0, 0)
     # print(agent.get_next_state(discrete_position, discrete_velocity, 0))
     # print(agent.get_next_state(discrete_position, discrete_velocity, 1))
     # print(agent.get_next_state(discrete_position, discrete_velocity, 2))
+
+    rewards = []
+    iterations = []
+    times = []
+    step_size = 10
+
+    # for gamma in np.arange(1, step=step_size):
+    for partitions in np.arange(step_size, 200, step=step_size):
+        agent = MountainCarAgent(0.9, 0.0000001, partitions, 100)
+
+        start_time = time.time()
+        iteration, policy = agent.train()
+        run_time = time.time() - start_time
+
+        iterations.append(iteration)
+        rewards.append(agent.test(policy))
+        times.append(run_time)
+
+    plt.scatter(np.arange(step_size, 200, step=step_size), iterations)
+    plt.savefig("PolicyIteration-Iterations.png")
+    plt.close()
+
+    plt.scatter(np.arange(step_size, 200, step=step_size), rewards)
+    plt.savefig("PolicyIteration-Rewards.png")
+    plt.close()
+
+    plt.scatter(np.arange(step_size, 200, step=step_size), times)
+    plt.savefig("PolicyIteration-Times.png")
+    plt.close()

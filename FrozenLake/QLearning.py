@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
+import time
 
 
 class FrozenLakeAgent(object):
@@ -23,11 +25,12 @@ class FrozenLakeAgent(object):
         amap = amap.reshape((side, side))
         return amap
 
-    def train(self) -> np.array:
+    def train(self, q_table = None) -> np.array:
         env = gym.make('FrozenLake-v1',
                        desc=self.amap_to_gym(self.map), is_slippery=True)
 
-        q_table = np.zeros([env.observation_space.n, env.action_space.n])
+        if q_table is None:
+            q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
         for _ in range(self.episodes):
             state = env.reset()
@@ -97,6 +100,28 @@ class FrozenLakeAgent(object):
 
         env.close()
 
+    def average_reward(self, policy, iterations):
+        env = gym.make('FrozenLake-v1',
+                       desc=self.amap_to_gym(self.map), is_slippery=True)
+
+        total_rewards = 0
+
+        for _ in range(iterations):
+            state = env.reset()
+            done = False
+
+            while not done:
+                action = int(policy[state])
+
+                new_state, reward, done, info = env.step(action)
+                total_rewards += reward
+
+                # update state
+                state = new_state
+
+        env.close()
+        return total_rewards / iterations
+
 
 if __name__ == "__main__":
     # agent = FrozenLakeAgent(0.9, 0.1, 1, 100, 4, 4, 'SFFFHFFFFFFFFFFG')
@@ -106,4 +131,17 @@ if __name__ == "__main__":
     agent = FrozenLakeAgent(0.9, 0.4, 1, 5000, 5, 5,
                             'SFFFFHFFFHHFFFFFFFFHHFFFG')
 
-    agent.test()
+    rewards = []
+    step_size = 0.05
+
+    for epsilon in np.arange(1, step=step_size):
+        agent = FrozenLakeAgent(0.9, epsilon, 0.2, 5000, 5, 5,
+                            'SFFFFHFFFHHFFFFFFFFHHFFFG')
+
+        policy = agent.train()
+        rewards.append(agent.average_reward(policy, 100))
+
+
+    plt.scatter(np.arange(1, step=step_size), rewards)
+    plt.savefig("QLearning-Rewards.png")
+    plt.close()

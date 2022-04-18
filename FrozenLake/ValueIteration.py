@@ -1,5 +1,7 @@
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
+import time
 
 
 class FrozenLakeAgent(object):
@@ -99,11 +101,12 @@ class FrozenLakeAgent(object):
 
             policy[state] = np.argmax(new_v)
 
-        return policy
+        return iterations, policy
 
-    def test(self):
-        policy = self.train()
-        print(policy)
+    def test(self, policy=None):
+        if policy is None:
+            _, policy = self.train()
+            print(policy)
 
         env = gym.make('FrozenLake-v1',
                        desc=self.amap_to_gym(self.map), is_slippery=True)
@@ -123,6 +126,28 @@ class FrozenLakeAgent(object):
             state = new_state
 
         env.close()
+
+    def average_reward(self, policy, iterations):
+        env = gym.make('FrozenLake-v1',
+                       desc=self.amap_to_gym(self.map), is_slippery=True)
+
+        total_rewards = 0
+
+        for _ in range(iterations):
+            state = env.reset()
+            done = False
+
+            while not done:
+                action = int(policy[state])
+
+                new_state, reward, done, info = env.step(action)
+                total_rewards += reward
+
+                # update state
+                state = new_state
+
+        env.close()
+        return total_rewards / iterations
 
     def state_to_coordinates(self, state: int) -> tuple:
         x = int(np.floor(state / self.m))
@@ -150,6 +175,37 @@ if __name__ == "__main__":
     # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFFFFFFFFFFFFFFFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 2, 2, 'SFFG')
     # agent = FrozenLakeAgent(0.9, 0.0000001, 4, 4, 'SFFHHFFHHFFHHFFG')
-    agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
+    # agent = FrozenLakeAgent(0.9, 0.0000001, 5, 5, 'SFFFFHFFFHHFFFFFFFFHHFFFG')
+    agent = FrozenLakeAgent(0.9, 0.0000001, 10, 10, 'SHFFFHFHFFFFFFFFFHFFFFFFFHFHFFFHFFFHFHFFFHFFFHFHFFFHFFFFFFFFFFFFFFFFFFFFFFFHFHFFFHFFFHFHFFFHFFFHFHFG')
 
-    agent.test()
+    # agent.test()
+    # policy = agent.train()
+    # print(agent.average_reward(policy, 100))
+
+    rewards = []
+    iterations = []
+    times = []
+    step_size = 0.05
+
+    for gamma in np.arange(1, step=step_size):
+        agent = FrozenLakeAgent(gamma, 0.0000001, 10, 10, 'SHFFFHFHFFFFFFFFFHFFFFFFFHFHFFFHFFFHFHFFFHFFFHFHFFFHFFFFFFFFFFFFFFFFFFFFFFFHFHFFFHFFFHFHFFFHFFFHFHFG')
+
+        start_time = time.time()
+        iteration, policy = agent.train()
+        run_time = time.time() - start_time
+
+        iterations.append(iteration)
+        rewards.append(agent.average_reward(policy, 100))
+        times.append(run_time)
+
+    plt.scatter(np.arange(1, step=step_size), iterations)
+    plt.savefig("ValueIteration-Iterations.png")
+    plt.close()
+
+    plt.scatter(np.arange(1, step=step_size), rewards)
+    plt.savefig("ValueIteration-Rewards.png")
+    plt.close()
+
+    plt.scatter(np.arange(1, step=step_size), times)
+    plt.savefig("ValueIteration-Times.png")
+    plt.close()
